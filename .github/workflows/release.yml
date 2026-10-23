@@ -1,0 +1,80 @@
+name: Release
+
+# Push a tag such as v0.1.0 to build and publish a GitHub release.
+# Run manually (workflow_dispatch) to build the artifacts without publishing.
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: ${{ matrix.platform.os_name }}-${{ matrix.platform.arch }} / Lua ${{ matrix.lua }}
+    runs-on: ${{ matrix.platform.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        lua: ["5.1", "5.2", "5.3", "5.4", "5.5"]
+        platform:
+          - { os_name: linux, arch: x64, runner: ubuntu-22.04, ext: so }
+          - { os_name: windows, arch: x64, runner: windows-latest, ext: dll }
+          - { os_name: windows, arch: x86, runner: windows-latest, ext: dll }
+    env:
+      GENERATOR: ${{ matrix.platform.os_name == 'windows' && 'Ninja' || '' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ilammy/msvc-dev-cmd@v1
+        if: matrix.platform.os_name == 'windows'
+        with:
+          arch: ${{ matrix.platform.arch }}
+
+      # Builds the module against stock Lua headers (and, on Windows, an import
+      # library for luaXY.dll), then runs the test-suite against it.
+      - name: Build and test
+        shell: bash
+        run: tools/ci-build.sh ${{ matrix.lua }}
+
+      - name: Package
+        shell: bash
+        run: |
+          name="lua-ftxui-lua${{ matrix.lua }}-${{ matrix.platform.os_name }}-${{ matrix.platform.arch }}"
+          mkdir -p "dist/$name"
+          cp "build/lua${{ matrix.lua }}/module/ftxui.${{ matrix.platform.ext }}" "dist/$name/"
+          cp -r README.md LICENSE THIRD_PARTY_LICENSES.md examples "dist/$name/"
+          cd dist
+          if [ "${{ matrix.platform.os_name }}" = windows ]; then
+            7z a "$name.zip" "$name" > /dev/null
+          else
+            tar czf "$name.tar.gz" "$name"
+          fi
+          rm -rf "$name"
+          ls -la
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lua-ftxui-lua${{ matrix.lua }}-${{ matrix.platform.os_name }}-${{ matrix.platform.arch }}
+          path: dist/*
+          if-no-files-found: error
+
+  release:
+    name: Publish GitHub release
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: Checksums
+        run: cd dist && sha256sum * > SHA256SUMS.txt && cat SHA256SUMS.txt
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*
+          generate_release_notes: true

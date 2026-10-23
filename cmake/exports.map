@@ -1,0 +1,4 @@
+{
+  global: luaopen_ftxui;
+  local: *;
+};

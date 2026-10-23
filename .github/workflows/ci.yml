@@ -1,0 +1,33 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: ${{ matrix.platform.os_name }} / Lua ${{ matrix.lua }}
+    runs-on: ${{ matrix.platform.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        lua: ["5.1", "5.2", "5.3", "5.4", "5.5"]
+        platform:
+          - { os_name: linux, runner: ubuntu-22.04, arch: x64 }
+          - { os_name: windows, runner: windows-latest, arch: x64 }
+    env:
+      GENERATOR: ${{ matrix.platform.os_name == 'windows' && 'Ninja' || '' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ilammy/msvc-dev-cmd@v1
+        if: matrix.platform.os_name == 'windows'
+        with:
+          arch: ${{ matrix.platform.arch }}
+
+      # Builds a stock Lua (LuaBinaries layout), the module, runs all tests.
+      - name: Build and test
+        shell: bash
+        run: tools/ci-build.sh ${{ matrix.lua }}
