@@ -11,7 +11,10 @@ ui.color_support("truecolor")  -- make colour escapes independent of the environ
 
 local passed, failed = 0, 0
 local verbose = os.getenv("TEST_VERBOSE")
+local only, list = os.getenv("TEST_ONLY"), os.getenv("TEST_LIST")
 local function test(name, fn)
+  if list then print("TEST " .. name); return end   -- list test names
+  if only and only ~= name then return end          -- run a single test
   if verbose then io.stderr:write("RUN   ", name, "\n") end
   local ok, err = xpcall(fn, debug.traceback)
   if ok then

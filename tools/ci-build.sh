@@ -88,6 +88,17 @@ TEST_VERBOSE=1 "$lua" tests/test.lua "$work/module/?.$ext"
 rc=$?
 set -e
 echo "tests exit code: $rc"
+if [ "$rc" != 0 ] && [ "$windows" = 1 ]; then
+  # Re-run every test in its own process to see which ones crash.
+  echo "--- per-test results ---"
+  set +e
+  TEST_LIST=1 "$lua" tests/test.lua "$work/module/?.$ext" | sed -n 's/^TEST //p' | tr -d '\r' > "$work/names.txt"
+  while IFS= read -r name; do
+    TEST_ONLY="$name" "$lua" tests/test.lua "$work/module/?.$ext" > "$work/one.txt" 2>&1
+    echo "per-test [$?] $name"
+  done < "$work/names.txt"
+  set -e
+fi
 [ "$rc" = 0 ] || exit "$rc"
 if [ "$windows" = 0 ] && command -v python3 >/dev/null; then
   python3 tests/pty_test.py "$lua" "$work/module/?.$ext"
