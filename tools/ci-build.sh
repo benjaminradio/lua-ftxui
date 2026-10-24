@@ -68,6 +68,20 @@ if [ "$windows" = 1 ]; then
   dumpbin //dependents "$module" || true
   set +e; "$lua" -v; echo "lua -v exit code: $?"; set -e
 fi
+if [ "$windows" = 1 ]; then
+  # Bisect a start-up crash: one operation per interpreter run.
+  probe() {
+    set +e
+    "$lua" -e "package.cpath=[[$work/module/?.$ext;]]..package.cpath; local ui=require'ftxui'; io.stderr:write('probe: ', [[$1]], '\n'); $2; io.stderr:write('probe ok\n')"
+    echo "probe '$1' exit code: $?"
+    set -e
+  }
+  probe version "print(ui.version)"
+  probe render "print(ui.render(ui.text('x')))"
+  probe color_get "print(ui.color_support())"
+  probe color_set "print(ui.color_support('truecolor'))"
+  probe terminal_size "print(ui.terminal_size())"
+fi
 # TEST_VERBOSE names each test on stderr (unbuffered), which pinpoints a crash.
 set +e
 TEST_VERBOSE=1 "$lua" tests/test.lua "$work/module/?.$ext"
