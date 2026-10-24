@@ -61,6 +61,13 @@ ls -la "$work/lua/out" "$work/module" | head -30
 test -f "$module"
 test -f "$lua" || { echo "interpreter not found: $lua" >&2; exit 1; }
 
+if [ "$windows" = 1 ]; then
+  # Diagnostics: a native exe that cannot start shows up as a bare 127 in bash.
+  echo "lua: $lua"
+  dumpbin //dependents "$lua" || true
+  dumpbin //dependents "$module" || true
+  set +e; "$lua" -v; echo "lua -v exit code: $?"; set -e
+fi
 "$lua" tests/test.lua "$work/module/?.$ext"
 if [ "$windows" = 0 ] && command -v python3 >/dev/null; then
   python3 tests/pty_test.py "$lua" "$work/module/?.$ext"
