@@ -68,7 +68,13 @@ if [ "$windows" = 1 ]; then
   dumpbin //dependents "$module" || true
   set +e; "$lua" -v; echo "lua -v exit code: $?"; set -e
 fi
-"$lua" tests/test.lua "$work/module/?.$ext"
+# TEST_VERBOSE names each test on stderr (unbuffered), which pinpoints a crash.
+set +e
+TEST_VERBOSE=1 "$lua" tests/test.lua "$work/module/?.$ext"
+rc=$?
+set -e
+echo "tests exit code: $rc"
+[ "$rc" = 0 ] || exit "$rc"
 if [ "$windows" = 0 ] && command -v python3 >/dev/null; then
   python3 tests/pty_test.py "$lua" "$work/module/?.$ext"
 fi

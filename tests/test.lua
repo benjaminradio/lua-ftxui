@@ -4,7 +4,9 @@
 --   lua tests/test.lua "./build/?.so"        (cpath template for the module)
 
 if arg and arg[1] then package.cpath = arg[1] .. ";" .. package.cpath end
+if os.getenv("TEST_VERBOSE") then io.stderr:write("loading module\n") end
 local ui = require("ftxui")
+if os.getenv("TEST_VERBOSE") then io.stderr:write("module loaded\n") end
 ui.color_support("truecolor")  -- make colour escapes independent of the environment
 
 local passed, failed = 0, 0
