@@ -35,12 +35,19 @@ extern std::string g_pending;     // error raised inside a Lua callback
 void set_state(lua_State* L);     // also releases deferred registry refs
 void record_error(const std::string& msg);
 
-// Runs f; converts C++ exceptions / pending callback errors to a Lua error.
+// Runs f; converts C++ exceptions / pending callback errors into an error
+// message left on top of the Lua stack and returns -1 (otherwise f's result).
+// It never raises a Lua error itself: `guarded` does that from a frame that
+// owns no C++ objects, so the longjmp behind lua_error only ever unwinds
+// frames without exception-handling data (matters on MSVC, where longjmp
+// unwinds through C++ frames and the module and Lua use different runtimes).
 int guard_call(lua_State* L, int (*f)(lua_State*));
 
 template <int (*F)(lua_State*)>
 int guarded(lua_State* L) {
-  return guard_call(L, F);
+  int n = guard_call(L, F);
+  if (n < 0) return lua_error(L);
+  return n;
 }
 
 // ---- Lua function references ----------------------------------------------

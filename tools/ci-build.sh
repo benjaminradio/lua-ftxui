@@ -95,7 +95,9 @@ if [ "$rc" != 0 ] && [ "$windows" = 1 ]; then
   TEST_LIST=1 "$lua" tests/test.lua "$work/module/?.$ext" | sed -n 's/^TEST //p' | tr -d '\r' > "$work/names.txt"
   while IFS= read -r name; do
     TEST_ONLY="$name" "$lua" tests/test.lua "$work/module/?.$ext" > "$work/one.txt" 2>&1
-    echo "per-test [$?] $name"
+    rc1=$?
+    echo "per-test [$rc1] $name"
+    if [ "$rc1" != 0 ] && [ "$rc1" != 127 ]; then head -n 12 "$work/one.txt" | sed 's/^/    | /'; fi
   done < "$work/names.txt"
   set -e
 fi

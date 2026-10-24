@@ -30,36 +30,30 @@ void record_error(const std::string& msg) {
 
 int guard_call(lua_State* L, int (*f)(lua_State*)) {
   int n = 0;
-  bool failed = false;
-  {
-    std::string err;
-    bool from_callback = false;
-    try {
-      set_state(L);
-      n = f(L);
-    } catch (const std::exception& e) {
-      err = e.what();
-    } catch (...) {
-      err = "unknown C++ exception";
-    }
-    if (err.empty() && !g_pending.empty()) {
-      err.swap(g_pending);
-      g_pending.clear();
-      from_callback = true;
-    }
-    if (!err.empty()) {
-      failed = true;
-      if (from_callback) {
-        lua_pushlstring(L, err.data(), err.size());
-      } else {
-        luaL_where(L, 1);
-        lua_pushlstring(L, err.data(), err.size());
-        lua_concat(L, 2);
-      }
-    }
-  }  // err destroyed before the longjmp
-  if (failed) return lua_error(L);
-  return n;
+  std::string err;
+  bool from_callback = false;
+  try {
+    set_state(L);
+    n = f(L);
+  } catch (const std::exception& e) {
+    err = e.what();
+  } catch (...) {
+    err = "unknown C++ exception";
+  }
+  if (err.empty() && !g_pending.empty()) {
+    err.swap(g_pending);
+    g_pending.clear();
+    from_callback = true;
+  }
+  if (err.empty()) return n;
+  if (from_callback) {
+    lua_pushlstring(L, err.data(), err.size());
+  } else {
+    luaL_where(L, 1);
+    lua_pushlstring(L, err.data(), err.size());
+    lua_concat(L, 2);
+  }
+  return -1;  // `err` is destroyed on return, before the caller raises
 }
 
 // ---- Lua refs --------------------------------------------------------------
