@@ -35,6 +35,12 @@ local function has(s, sub, msg)
     error(("%s\n  missing: %s\n  in:\n%s"):format(msg or "substring not found", sub, s), 2)
   end
 end
+-- FTXUI draws check/radio glyphs as ASCII on the legacy Windows console.
+local function has_either(s, a, b, msg)
+  if not (s:find(a, 1, true) or s:find(b, 1, true)) then
+    error(("%s\n  missing: %s  (or %s)\n  in:\n%s"):format(msg or "substring not found", a, b, s), 2)
+  end
+end
 local function fails(fn, pattern)
   local ok, err = pcall(fn)
   if ok then error("expected an error matching '" .. pattern .. "'", 2) end
@@ -266,15 +272,15 @@ test("checkbox", function()
   local last
   local c = ui.checkbox{ label = "Opt", on_change = function(v) last = v end }
   eq(c.checked, false)
-  has(ui.render(c), "☐ Opt")
+  has_either(ui.render(c), "☐ Opt", "[ ] Opt")
   c:event("Return")
   eq(c.checked, true); eq(last, true)
-  has(ui.render(c), "▣ Opt")
+  has_either(ui.render(c), "▣ Opt", "[X] Opt")
   c:event("Space")
   eq(c.checked, false); eq(last, false)
   c.checked = true
   eq(c.value, true)
-  has(ui.render(c), "▣")
+  has_either(ui.render(c), "▣", "[X]")
 end)
 
 test("radiobox", function()
@@ -283,9 +289,9 @@ test("radiobox", function()
   eq(r.selected, 2)
   r:event("ArrowDown"); r:event("Return")
   eq(r.selected, 3); eq(last, 3)
-  has(ui.render(r), "◉ c")
+  has_either(ui.render(r), "◉ c", "(*) c")
   r.selected = 1
-  has(ui.render(r), "◉ a")
+  has_either(ui.render(r), "◉ a", "(*) a")
   eq(#r.entries, 3)
   r.entries = { "x", "y" }
   eq(r.entries[2], "y")
