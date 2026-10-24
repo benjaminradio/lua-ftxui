@@ -36,7 +36,8 @@ if [ ! -f "$work/src/src/lua.h" ]; then
   curl -fsSL --retry 5 --retry-delay 5 -o "$work/lua.tar.gz" \
     "https://www.lua.org/ftp/lua-$full.tar.gz"
   mkdir -p "$work/src"
-  tar -xzf "$work/lua.tar.gz" -C "$work/src" --strip-components=1
+  # relative paths: GNU tar reads "D:/..." as host:path
+  (cd "$work" && tar -xzf lua.tar.gz -C src --strip-components=1)
 fi
 
 gen=()
