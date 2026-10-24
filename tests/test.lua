@@ -10,7 +10,9 @@ if os.getenv("TEST_VERBOSE") then io.stderr:write("module loaded\n") end
 ui.color_support("truecolor")  -- make colour escapes independent of the environment
 
 local passed, failed = 0, 0
+local verbose = os.getenv("TEST_VERBOSE")
 local function test(name, fn)
+  if verbose then io.stderr:write("RUN   ", name, "\n") end
   local ok, err = xpcall(fn, debug.traceback)
   if ok then
     passed = passed + 1
