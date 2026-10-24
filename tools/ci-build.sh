@@ -57,7 +57,9 @@ cmake --build "$work/module" --config Release
 
 lua="$work/lua/out/$exe"
 module="$work/module/ftxui.$ext"
+ls -la "$work/lua/out" "$work/module" | head -30
 test -f "$module"
+test -f "$lua" || { echo "interpreter not found: $lua" >&2; exit 1; }
 
 "$lua" tests/test.lua "$work/module/?.$ext"
 if [ "$windows" = 0 ] && command -v python3 >/dev/null; then
